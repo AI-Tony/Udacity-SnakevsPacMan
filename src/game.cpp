@@ -4,9 +4,16 @@
 
 Game::Game(std::size_t grid_width, std::size_t grid_height)
     : snake(grid_width, grid_height),
+      pacman(grid_width, grid_height),
       engine(dev()),
-      random_w(0, static_cast<int>(grid_width - 1)),
-      random_h(0, static_cast<int>(grid_height - 1)) {
+      random_x(0, static_cast<int>(grid_width - 1)),
+      random_y(0, static_cast<int>(grid_height - 1)),
+      random_w(1, 6),
+      random_h(1, 6) {
+  for (size_t i = 0; i < NUMBER_OF_OBSTACLES; i++) {
+      obstacles.push_back( Obstacle(random_x(engine), random_y(engine), random_w(engine), random_h(engine)) );
+      obstacleRects[i] = obstacles[i].rect;
+  }
   PlaceFood();
 }
 
@@ -25,7 +32,7 @@ void Game::Run(Controller const &controller, Renderer &renderer,
     // Input, Update, Render - the main game loop.
     controller.HandleInput(running, snake);
     Update();
-    renderer.Render(snake, food);
+    renderer.Render(snake, pacman, food, obstacleRects.get());
 
     frame_end = SDL_GetTicks();
 
@@ -53,13 +60,16 @@ void Game::Run(Controller const &controller, Renderer &renderer,
 void Game::PlaceFood() {
   int x, y;
   while (true) {
-    x = random_w(engine);
-    y = random_h(engine);
+    x = random_x(engine);
+    y = random_y(engine);
     // Check that the location is not occupied by a snake item before placing
     // food.
-    if (!snake.SnakeCell(x, y)) {
+    if ( !snake.SnakeCell(x, y) && !pacman.PacmanCell(x, y) && !ObstacleCell(x, y) ) {
       food.x = x;
       food.y = y;
+      pacman.clean();
+      pacman.setGoal(x, y);
+      pacman.findPath(obstacles);
       return;
     }
   }
@@ -69,6 +79,7 @@ void Game::Update() {
   if (!snake.alive) return;
 
   snake.Update();
+  pacman.Update();
 
   int new_x = static_cast<int>(snake.head_x);
   int new_y = static_cast<int>(snake.head_y);
@@ -81,6 +92,32 @@ void Game::Update() {
     snake.GrowBody();
     snake.speed += 0.02;
   }
+
+  // checks if pacman gets the food
+  if (food.x == pacman.getX() && food.y == pacman.getY()) {
+    pacman_score++;
+    PlaceFood();
+  }
+
+  // checks if snake has eaten pacman
+  if (new_x == pacman.getX() && new_y == pacman.getY()) {
+      pacman.eaten();
+      pacman.findPath(obstacles);
+  }
+
+  // checks if snake has crashed into obstacle
+  if ( ObstacleCell(new_x, new_y) ) {
+      std::cout << "You crashed!" << '\n';
+      snake.alive = false;
+  }
+}
+
+// helper function to cycle trough obstacles and check they don't coinside with other objects
+bool Game::ObstacleCell(int x, int y) {
+    for ( auto &obstacle : obstacles ) {
+        if ( obstacle.isHere(x, y) ) { return true; }
+    }
+    return false;
 }
 
 int Game::GetScore() const { return score; }
