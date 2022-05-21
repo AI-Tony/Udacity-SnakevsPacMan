@@ -14,7 +14,7 @@ class Renderer {
   ~Renderer();
 
   void Render(Snake const snake, Pacman pacman, SDL_Point const &food, SDL_Rect const obstacleRects[]);
-  void UpdateWindowTitle(int score, int fps);
+  void UpdateWindowTitle(int score, int pacman_score, int fps);
 
  private:
   SDL_Window *sdl_window;

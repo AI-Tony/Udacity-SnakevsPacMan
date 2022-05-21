@@ -43,7 +43,7 @@ void Game::Run(Controller const &controller, Renderer &renderer,
 
     // After every second, update the window title.
     if (frame_end - title_timestamp >= 1000) {
-      renderer.UpdateWindowTitle(score, frame_count);
+      renderer.UpdateWindowTitle(score, pacman_score, frame_count);
       frame_count = 0;
       title_timestamp = frame_end;
     }
@@ -122,3 +122,4 @@ bool Game::ObstacleCell(int x, int y) {
 
 int Game::GetScore() const { return score; }
 int Game::GetSize() const { return snake.size; }
+int Game::GetPacManScore() const { return pacman_score; }
